@@ -13,9 +13,13 @@
 #define WM_HTTPS_TIMEOUT_MS 5000
 #define WM_HTTPS_REQUEST_SIZE 4096
 
-static br_ssl_client_context g_wm_ssl_client;
-static br_x509_minimal_context g_wm_x509_minimal;
-static unsigned char g_wm_iobuf[WM_HTTPS_IOBUF_SIZE];
+struct wm_tls_connection {
+    SOCKET sock;
+    br_ssl_client_context ssl_client;
+    br_x509_minimal_context x509_minimal;
+    unsigned char iobuf[WM_HTTPS_IOBUF_SIZE];
+    int closed;
+};
 
 static void
 wm_https_zero_result(wm_https_result *result)
@@ -115,6 +119,332 @@ wm_https_disconnect(SOCKET sock)
         closesocket(sock);
     }
     WSACleanup();
+}
+
+static int
+wm_tls_send_pending_records(wm_tls_connection *conn, wm_https_result *result)
+{
+    unsigned char *buf;
+    size_t len;
+
+    buf = br_ssl_engine_sendrec_buf(&conn->ssl_client.eng, &len);
+    while (len > 0) {
+        int wr;
+
+        wr = send(conn->sock, (const char *)buf, (int)len, 0);
+        if (wr <= 0) {
+            if (result != 0) {
+                result->wsa_error = WSAGetLastError();
+            }
+            return 0;
+        }
+
+        br_ssl_engine_sendrec_ack(&conn->ssl_client.eng, (size_t)wr);
+        buf = br_ssl_engine_sendrec_buf(&conn->ssl_client.eng, &len);
+    }
+
+    return 1;
+}
+
+static int
+wm_tls_recv_pending_records(wm_tls_connection *conn, wm_https_result *result)
+{
+    unsigned char *buf;
+    size_t len;
+    int rd;
+    int want;
+
+    buf = br_ssl_engine_recvrec_buf(&conn->ssl_client.eng, &len);
+    if (len == 0) {
+        return 1;
+    }
+
+    want = (len < WM_HTTPS_RECV_CHUNK) ? (int)len : WM_HTTPS_RECV_CHUNK;
+    rd = recv(conn->sock, (char *)buf, want, 0);
+    if (rd == SOCKET_ERROR) {
+        if (result != 0) {
+            result->wsa_error = WSAGetLastError();
+        }
+        return 0;
+    }
+    if (rd == 0) {
+        conn->closed = 1;
+        return 1;
+    }
+
+    br_ssl_engine_recvrec_ack(&conn->ssl_client.eng, (size_t)rd);
+    return 1;
+}
+
+static int
+wm_tls_drive_records(wm_tls_connection *conn, wm_https_result *result)
+{
+    unsigned state;
+
+    state = br_ssl_engine_current_state(&conn->ssl_client.eng);
+
+    if (state & BR_SSL_CLOSED) {
+        conn->closed = 1;
+        if (result != 0) {
+            result->tls_error = br_ssl_engine_last_error(&conn->ssl_client.eng);
+        }
+        return 0;
+    }
+
+    if (state & BR_SSL_SENDREC) {
+        return wm_tls_send_pending_records(conn, result);
+    }
+
+    if (state & BR_SSL_RECVREC) {
+        return wm_tls_recv_pending_records(conn, result);
+    }
+
+    return 1;
+}
+
+int
+wm_tls_open(
+    const char *host,
+    unsigned short port,
+    const char *sni_host,
+    wm_tls_connection **out_conn,
+    wm_https_result *result
+)
+{
+    wm_tls_connection *conn;
+    const br_x509_trust_anchor *trust_anchors;
+    size_t trust_anchor_count;
+    const char *sni_name;
+    unsigned state;
+
+    wm_https_zero_result(result);
+
+    if (host == 0 || out_conn == 0) {
+        return 0;
+    }
+
+    *out_conn = 0;
+    conn = (wm_tls_connection *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
+        sizeof(*conn));
+    if (conn == 0) {
+        return 0;
+    }
+
+    conn->sock = INVALID_SOCKET;
+    sni_name = (sni_host != 0 && sni_host[0] != '\0') ? sni_host : host;
+
+    if (!wm_https_connect_ipv4(host, port, &conn->sock,
+        (result != 0) ? &result->wsa_error : 0))
+    {
+        HeapFree(GetProcessHeap(), 0, conn);
+        return 0;
+    }
+
+    if (!wm_cert_store_init()) {
+        wm_https_disconnect(conn->sock);
+        HeapFree(GetProcessHeap(), 0, conn);
+        return 0;
+    }
+
+    trust_anchors = wm_cert_store_anchors();
+    trust_anchor_count = wm_cert_store_anchor_count();
+
+    br_ssl_client_init_full(&conn->ssl_client, &conn->x509_minimal,
+        trust_anchors, trust_anchor_count);
+    br_ssl_engine_set_versions(&conn->ssl_client.eng, BR_TLS12, BR_TLS12);
+    br_ssl_engine_set_buffer(&conn->ssl_client.eng, conn->iobuf,
+        sizeof(conn->iobuf), 1);
+
+    if (!br_ssl_client_reset(&conn->ssl_client, sni_name, 0)) {
+        if (result != 0) {
+            result->tls_error = br_ssl_engine_last_error(&conn->ssl_client.eng);
+        }
+        wm_https_disconnect(conn->sock);
+        HeapFree(GetProcessHeap(), 0, conn);
+        return 0;
+    }
+
+    while (1) {
+        state = br_ssl_engine_current_state(&conn->ssl_client.eng);
+        if ((state & BR_SSL_SENDAPP) || (state & BR_SSL_RECVAPP)) {
+            break;
+        }
+        if (!wm_tls_drive_records(conn, result) || conn->closed) {
+            wm_https_disconnect(conn->sock);
+            HeapFree(GetProcessHeap(), 0, conn);
+            return 0;
+        }
+    }
+
+    if (result != 0) {
+        result->ok = 1;
+    }
+    *out_conn = conn;
+    return 1;
+}
+
+int
+wm_tls_write(
+    wm_tls_connection *conn,
+    const void *data,
+    unsigned int data_len,
+    unsigned int *bytes_written,
+    wm_https_result *result
+)
+{
+    const unsigned char *src;
+    unsigned int sent;
+
+    wm_https_zero_result(result);
+    if (bytes_written != 0) {
+        *bytes_written = 0;
+    }
+
+    if (conn == 0 || (data == 0 && data_len > 0)) {
+        return 0;
+    }
+
+    src = (const unsigned char *)data;
+    sent = 0;
+
+    while (sent < data_len) {
+        unsigned state;
+
+        state = br_ssl_engine_current_state(&conn->ssl_client.eng);
+
+        if (state & BR_SSL_CLOSED) {
+            conn->closed = 1;
+            if (result != 0) {
+                result->tls_error = br_ssl_engine_last_error(&conn->ssl_client.eng);
+            }
+            return 0;
+        }
+
+        if (state & BR_SSL_SENDAPP) {
+            unsigned char *buf;
+            size_t len;
+            size_t take;
+
+            buf = br_ssl_engine_sendapp_buf(&conn->ssl_client.eng, &len);
+            take = data_len - sent;
+            if (take > len) {
+                take = len;
+            }
+
+            if (take > 0) {
+                memcpy(buf, src + sent, take);
+                br_ssl_engine_sendapp_ack(&conn->ssl_client.eng, take);
+                br_ssl_engine_flush(&conn->ssl_client.eng, 0);
+                sent += (unsigned int)take;
+                if (bytes_written != 0) {
+                    *bytes_written = sent;
+                }
+                continue;
+            }
+        }
+
+        if (!wm_tls_drive_records(conn, result) || conn->closed) {
+            return 0;
+        }
+    }
+
+    if (result != 0) {
+        result->ok = 1;
+    }
+    return 1;
+}
+
+int
+wm_tls_read(
+    wm_tls_connection *conn,
+    void *buffer,
+    unsigned int buffer_size,
+    unsigned int *bytes_read,
+    wm_https_result *result
+)
+{
+    unsigned char *dst;
+
+    wm_https_zero_result(result);
+    if (bytes_read != 0) {
+        *bytes_read = 0;
+    }
+
+    if (conn == 0 || buffer == 0 || buffer_size == 0) {
+        return 0;
+    }
+
+    dst = (unsigned char *)buffer;
+
+    while (1) {
+        unsigned state;
+
+        state = br_ssl_engine_current_state(&conn->ssl_client.eng);
+
+        if (state & BR_SSL_CLOSED) {
+            conn->closed = 1;
+            if (result != 0) {
+                result->tls_error = br_ssl_engine_last_error(&conn->ssl_client.eng);
+                result->ok = (result->tls_error == 0);
+            }
+            return (result == 0 || result->tls_error == 0);
+        }
+
+        if (state & BR_SSL_RECVAPP) {
+            unsigned char *buf;
+            size_t len;
+            size_t take;
+
+            buf = br_ssl_engine_recvapp_buf(&conn->ssl_client.eng, &len);
+            take = len;
+            if (take > buffer_size) {
+                take = buffer_size;
+            }
+
+            if (take > 0) {
+                memcpy(dst, buf, take);
+                br_ssl_engine_recvapp_ack(&conn->ssl_client.eng, take);
+                if (bytes_read != 0) {
+                    *bytes_read = (unsigned int)take;
+                }
+                if (result != 0) {
+                    result->ok = 1;
+                    result->http_bytes = (int)take;
+                }
+                return 1;
+            }
+        }
+
+        if (!wm_tls_drive_records(conn, result)) {
+            return 0;
+        }
+        if (conn->closed) {
+            if (result != 0) {
+                result->ok = 1;
+            }
+            return 1;
+        }
+    }
+}
+
+void
+wm_tls_close(wm_tls_connection *conn)
+{
+    if (conn == 0) {
+        return;
+    }
+
+    if (!conn->closed) {
+        br_ssl_engine_close(&conn->ssl_client.eng);
+        while (br_ssl_engine_current_state(&conn->ssl_client.eng) & BR_SSL_SENDREC) {
+            if (!wm_tls_send_pending_records(conn, 0)) {
+                break;
+            }
+        }
+    }
+
+    wm_https_disconnect(conn->sock);
+    HeapFree(GetProcessHeap(), 0, conn);
 }
 
 static void
@@ -237,16 +567,10 @@ wm_tls_exchange_internal(
     wm_https_result *result
 )
 {
-    SOCKET sock;
-    br_ssl_client_context *sc;
-    br_x509_minimal_context *xc;
-    unsigned state;
-    int sent_request;
+    wm_tls_connection *conn;
     int response_len;
     int ok;
-    const br_x509_trust_anchor *trust_anchors;
-    size_t trust_anchor_count;
-    const char *sni_name;
+    unsigned int wrote;
 
     wm_https_zero_result(result);
 
@@ -255,149 +579,45 @@ wm_tls_exchange_internal(
     }
 
     response[0] = '\0';
-    sc = &g_wm_ssl_client;
-    xc = &g_wm_x509_minimal;
-    sni_name = (sni_host != 0 && sni_host[0] != '\0') ? sni_host : host;
 
-    if (!wm_https_connect_ipv4(host, port, &sock, (result != 0) ? &result->wsa_error : 0)) {
+    if (!wm_tls_open(host, port, sni_host, &conn, result)) {
         return 0;
     }
 
-    memset(sc, 0, sizeof(*sc));
-    memset(xc, 0, sizeof(*xc));
-    memset(g_wm_iobuf, 0, sizeof(g_wm_iobuf));
-
-    if (!wm_cert_store_init()) {
-        wm_https_disconnect(sock);
+    if (!wm_tls_write(conn, request_text, (unsigned int)strlen(request_text),
+        &wrote, result))
+    {
+        wm_tls_close(conn);
         return 0;
     }
 
-    trust_anchors = wm_cert_store_anchors();
-    trust_anchor_count = wm_cert_store_anchor_count();
-
-    br_ssl_client_init_full(sc, xc, trust_anchors, trust_anchor_count);
-    br_ssl_engine_set_versions(&sc->eng, BR_TLS12, BR_TLS12);
-    br_ssl_engine_set_buffer(&sc->eng, g_wm_iobuf, sizeof(g_wm_iobuf), 1);
-
-    if (!br_ssl_client_reset(sc, sni_name, 0)) {
-        if (result != 0) {
-            result->tls_error = br_ssl_engine_last_error(&sc->eng);
-        }
-        wm_https_disconnect(sock);
-        return 0;
-    }
-
-    sent_request = 0;
     response_len = 0;
     ok = 0;
 
     while (1) {
-        state = br_ssl_engine_current_state(&sc->eng);
+        unsigned int got;
 
-        if (state & BR_SSL_CLOSED) {
-            if (result != 0) {
-                result->tls_error = br_ssl_engine_last_error(&sc->eng);
-            }
+        if (!wm_tls_read(conn, response + response_len,
+            (unsigned int)(response_size - response_len - 1), &got, result))
+        {
+            wm_tls_close(conn);
+            return 0;
+        }
+
+        if (got == 0) {
             break;
         }
 
-        if (state & BR_SSL_SENDREC) {
-            unsigned char *buf;
-            size_t len;
+        response_len += (int)got;
+        response[response_len] = '\0';
+        ok = 1;
 
-            buf = br_ssl_engine_sendrec_buf(&sc->eng, &len);
-            while (len > 0) {
-                int wr;
-
-                wr = send(sock, (const char *)buf, (int)len, 0);
-                if (wr <= 0) {
-                    if (result != 0) {
-                        result->wsa_error = WSAGetLastError();
-                    }
-                    wm_https_disconnect(sock);
-                    return 0;
-                }
-
-                br_ssl_engine_sendrec_ack(&sc->eng, (size_t)wr);
-                buf = br_ssl_engine_sendrec_buf(&sc->eng, &len);
-            }
-            continue;
-        }
-
-        if ((state & BR_SSL_SENDAPP) && !sent_request) {
-            unsigned char *buf;
-            size_t len;
-            size_t qlen;
-
-            buf = br_ssl_engine_sendapp_buf(&sc->eng, &len);
-            qlen = strlen(request_text);
-
-            if (len >= qlen) {
-                memcpy(buf, request_text, qlen);
-                br_ssl_engine_sendapp_ack(&sc->eng, qlen);
-                br_ssl_engine_flush(&sc->eng, 0);
-                sent_request = 1;
-            }
-            continue;
-        }
-
-        if (state & BR_SSL_RECVREC) {
-            unsigned char *buf;
-            size_t len;
-            int rd;
-            int want;
-
-            buf = br_ssl_engine_recvrec_buf(&sc->eng, &len);
-            if (len == 0) {
-                break;
-            }
-
-            want = (len < WM_HTTPS_RECV_CHUNK) ? (int)len : WM_HTTPS_RECV_CHUNK;
-            rd = recv(sock, (char *)buf, want, 0);
-            if (rd == SOCKET_ERROR) {
-                if (result != 0) {
-                    result->wsa_error = WSAGetLastError();
-                }
-                wm_https_disconnect(sock);
-                return 0;
-            }
-            if (rd == 0) {
-                if (result != 0) {
-                    result->tls_error = br_ssl_engine_last_error(&sc->eng);
-                }
-                break;
-            }
-
-            br_ssl_engine_recvrec_ack(&sc->eng, (size_t)rd);
-            continue;
-        }
-
-        if (state & BR_SSL_RECVAPP) {
-            unsigned char *buf;
-            size_t len;
-            int take;
-
-            buf = br_ssl_engine_recvapp_buf(&sc->eng, &len);
-            if (len > 0) {
-                take = (int)len;
-                if (response_len + take >= response_size) {
-                    take = response_size - response_len - 1;
-                }
-
-                if (take > 0) {
-                    memcpy(response + response_len, buf, take);
-                    response_len += take;
-                    response[response_len] = '\0';
-                    ok = 1;
-                }
-
-                br_ssl_engine_recvapp_ack(&sc->eng, len);
-                continue;
-            }
+        if (response_len >= response_size - 1) {
+            break;
         }
     }
 
-    wm_https_disconnect(sock);
+    wm_tls_close(conn);
 
     if (result != 0) {
         result->ok = ok;

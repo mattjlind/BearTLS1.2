@@ -6,6 +6,7 @@ This project builds `wm_https.dll`, which exposes a small C API for:
 - HTTPS GET requests
 - Generic HTTPS requests (custom method/headers/body)
 - Raw TLS text exchange (for simple protocol scripting)
+- Streaming TLS reads/writes for binary protocols and large transfers
 
 ## Projects in Solution
 
@@ -49,6 +50,8 @@ typedef struct wm_https_result {
     int http_bytes;
 } wm_https_result;
 
+typedef struct wm_tls_connection wm_tls_connection;
+
 int wm_https_get(
     const char *host,
     unsigned short port,
@@ -79,6 +82,32 @@ int wm_tls_exchange(
     int response_size,
     wm_https_result *result
 );
+
+int wm_tls_open(
+    const char *host,
+    unsigned short port,
+    const char *sni_host,
+    wm_tls_connection **out_conn,
+    wm_https_result *result
+);
+
+int wm_tls_write(
+    wm_tls_connection *conn,
+    const void *data,
+    unsigned int data_len,
+    unsigned int *bytes_written,
+    wm_https_result *result
+);
+
+int wm_tls_read(
+    wm_tls_connection *conn,
+    void *buffer,
+    unsigned int buffer_size,
+    unsigned int *bytes_read,
+    wm_https_result *result
+);
+
+void wm_tls_close(wm_tls_connection *conn);
 ```
 
 ## Linking in another project
@@ -97,6 +126,10 @@ It verifies:
 - `GetProcAddress("wm_https_get")`
 - `GetProcAddress("wm_https_request")`
 - `GetProcAddress("wm_tls_exchange")`
+- `GetProcAddress("wm_tls_open")`
+- `GetProcAddress("wm_tls_write")`
+- `GetProcAddress("wm_tls_read")`
+- `GetProcAddress("wm_tls_close")`
 
 Then it runs one HTTPS request and shows detailed status in a message box.
 
@@ -134,6 +167,10 @@ Defined in `tls\wm_https.def`:
 - `wm_https_get`
 - `wm_https_request`
 - `wm_tls_exchange`
+- `wm_tls_open`
+- `wm_tls_write`
+- `wm_tls_read`
+- `wm_tls_close`
 
 ## Test app
 

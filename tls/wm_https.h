@@ -14,6 +14,8 @@ typedef struct wm_https_result {
     int http_bytes;
 } wm_https_result;
 
+typedef struct wm_tls_connection wm_tls_connection;
+
 /* HTTPS GET using a compiled-in BearSSL trust-anchor set.
  * Notes:
  *  - host may be a DNS hostname or a numeric IPv4 string
@@ -53,6 +55,36 @@ int wm_tls_exchange(
     int response_size,
     wm_https_result *result
 );
+
+/* Streaming TLS API for binary protocols and large HTTP transfers.
+ * Returns 1 on success, 0 on failure. wm_tls_read returns 1 with
+ * *bytes_read == 0 when the peer closes the connection.
+ */
+int wm_tls_open(
+    const char *host,
+    unsigned short port,
+    const char *sni_host,
+    wm_tls_connection **out_conn,
+    wm_https_result *result
+);
+
+int wm_tls_write(
+    wm_tls_connection *conn,
+    const void *data,
+    unsigned int data_len,
+    unsigned int *bytes_written,
+    wm_https_result *result
+);
+
+int wm_tls_read(
+    wm_tls_connection *conn,
+    void *buffer,
+    unsigned int buffer_size,
+    unsigned int *bytes_read,
+    wm_https_result *result
+);
+
+void wm_tls_close(wm_tls_connection *conn);
 
 #ifdef __cplusplus
 }

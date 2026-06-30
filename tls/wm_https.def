@@ -3,3 +3,7 @@ EXPORTS
     wm_https_get
     wm_https_request
     wm_tls_exchange
+    wm_tls_open
+    wm_tls_write
+    wm_tls_read
+    wm_tls_close

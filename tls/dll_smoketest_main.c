@@ -55,9 +55,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
     wm_https_get_fn p_get;
     wm_https_request_fn p_req;
     wm_tls_exchange_fn p_tls;
+    FARPROC p_open;
+    FARPROC p_write;
+    FARPROC p_read;
+    FARPROC p_close;
     DWORD e_get;
     DWORD e_req;
     DWORD e_tls;
+    DWORD e_open;
+    DWORD e_write;
+    DWORD e_read;
+    DWORD e_close;
     WCHAR wpath[MAX_PATH];
     char apath[MAX_PATH];
     char msg[4096];
@@ -81,6 +89,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
     e_req = GetLastError();
     p_tls = (wm_tls_exchange_fn)GetProcAddressA(h, "wm_tls_exchange");
     e_tls = GetLastError();
+    p_open = GetProcAddressA(h, "wm_tls_open");
+    e_open = GetLastError();
+    p_write = GetProcAddressA(h, "wm_tls_write");
+    e_write = GetLastError();
+    p_read = GetProcAddressA(h, "wm_tls_read");
+    e_read = GetLastError();
+    p_close = GetProcAddressA(h, "wm_tls_close");
+    e_close = GetLastError();
 
     if (GetModuleFileName(h, wpath, MAX_PATH) > 0) {
         WideCharToMultiByte(CP_ACP, 0, wpath, -1, apath, MAX_PATH, NULL, NULL);
@@ -88,7 +104,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
         strcpy(apath, "(unknown)");
     }
 
-    if (p_get == NULL || p_req == NULL || p_tls == NULL) {
+    if (p_get == NULL || p_req == NULL || p_tls == NULL
+        || p_open == NULL || p_write == NULL || p_read == NULL || p_close == NULL)
+    {
         if (p_get == NULL) {
             p_get = (wm_https_get_fn)GetProcAddressA(h, (LPCSTR)1);
         }
@@ -98,22 +116,45 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
         if (p_tls == NULL) {
             p_tls = (wm_tls_exchange_fn)GetProcAddressA(h, (LPCSTR)3);
         }
+        if (p_open == NULL) {
+            p_open = GetProcAddressA(h, (LPCSTR)4);
+        }
+        if (p_write == NULL) {
+            p_write = GetProcAddressA(h, (LPCSTR)5);
+        }
+        if (p_read == NULL) {
+            p_read = GetProcAddressA(h, (LPCSTR)6);
+        }
+        if (p_close == NULL) {
+            p_close = GetProcAddressA(h, (LPCSTR)7);
+        }
 
-        if (p_get != NULL && p_req != NULL && p_tls != NULL) {
+        if (p_get != NULL && p_req != NULL && p_tls != NULL
+            && p_open != NULL && p_write != NULL && p_read != NULL && p_close != NULL)
+        {
             _snprintf(msg, sizeof(msg),
                 "Name lookup failed, ordinal fallback worked.\r\nDLL path: %s\r\n"
-                "name errs: get=%lu req=%lu tls=%lu",
-                apath, (unsigned long)e_get, (unsigned long)e_req, (unsigned long)e_tls);
+                "name errs: get=%lu req=%lu tls=%lu open=%lu write=%lu read=%lu close=%lu",
+                apath, (unsigned long)e_get, (unsigned long)e_req, (unsigned long)e_tls,
+                (unsigned long)e_open, (unsigned long)e_write, (unsigned long)e_read,
+                (unsigned long)e_close);
             msg[sizeof(msg) - 1] = '\0';
             show_ascii_message("DLL Smoke Test", msg);
         } else {
         _snprintf(msg, sizeof(msg),
             "GetProcAddress failed.\r\nDLL path: %s\r\n"
-            "wm_https_get=%p (err=%lu)\r\nwm_https_request=%p (err=%lu)\r\nwm_tls_exchange=%p (err=%lu)",
+            "wm_https_get=%p (err=%lu)\r\nwm_https_request=%p (err=%lu)\r\n"
+            "wm_tls_exchange=%p (err=%lu)\r\nwm_tls_open=%p (err=%lu)\r\n"
+            "wm_tls_write=%p (err=%lu)\r\nwm_tls_read=%p (err=%lu)\r\n"
+            "wm_tls_close=%p (err=%lu)",
             apath,
             p_get, (unsigned long)e_get,
             p_req, (unsigned long)e_req,
-            p_tls, (unsigned long)e_tls);
+            p_tls, (unsigned long)e_tls,
+            p_open, (unsigned long)e_open,
+            p_write, (unsigned long)e_write,
+            p_read, (unsigned long)e_read,
+            p_close, (unsigned long)e_close);
         msg[sizeof(msg) - 1] = '\0';
         show_ascii_message("DLL Smoke Test", msg);
         FreeLibrary(h);
