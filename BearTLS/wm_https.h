@@ -88,6 +88,9 @@ int wm_tls_read(
 
 void wm_tls_close(wm_tls_connection *conn);
 
+/* Register this DLL as the shared BearTLS runtime under HKLM\\Software\\BearTLS. */
+int wm_bear_tls_register_runtime(void);
+
 int wm_hashcash_solve(
     const char *token,
     unsigned int easiness,
@@ -121,3 +124,4 @@ int wm_mega_rsa_decrypt_session(
 #endif
 
 #endif
+

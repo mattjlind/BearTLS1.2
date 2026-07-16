@@ -7,6 +7,8 @@ EXPORTS
     wm_tls_write
     wm_tls_read
     wm_tls_close
+    wm_bear_tls_register_runtime
     wm_hashcash_solve
     wm_pbkdf2_sha512_b64salt
     wm_mega_rsa_decrypt_session
+

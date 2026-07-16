@@ -13,6 +13,7 @@ This project builds `wm_https.dll`, which exposes a small C API for:
 - `BearTLS` (DLL): builds `wm_https.dll` + `wm_https.lib`
 - `BearTLS_example` (EXE): direct HTTPS sample client using the static API
 - `dll_smoketest` (EXE): `LoadLibrary`/`GetProcAddress` smoke test for `wm_https.dll`
+- `BearTLS_CAB` (DLL + CabWiz): builds the installer setup DLL and packages release CABs
 
 ## Platform/Config Notes
 
@@ -29,7 +30,7 @@ For `Pocket PC 2003 (ARMV4)` builds, these settings are important:
 - Linker subsystem forced: `/SUBSYSTEM:WINDOWSCE,4.20`
 - ARM machine forced to avoid Thumb loader issues on WM2003: `/MACHINE:ARM` (`TargetMachine=3`)
 
-WM5/WM6 configs keep `/GS` enabled.
+WM5/WM6 runtime DLL configs keep `/GS` enabled. The `BearTLS_CAB` setup DLL disables `/GS` for all target platforms so the small installer DLL links cleanly on the older WM2003 toolchain.
 
 ## Build
 
@@ -108,14 +109,18 @@ int wm_tls_read(
 );
 
 void wm_tls_close(wm_tls_connection *conn);
+
+int wm_bear_tls_register_runtime(void);
 ```
 
 ## Linking in another project
 
 1. Add `BearTLS\wm_https.h` to your include path.
 2. Link against `wm_https.lib`.
-3. Deploy `wm_https.dll` with your executable on device/emulator.
-4. Ensure `ws2.lib` is available in your build (the DLL itself already uses Winsock internally).
+3. Prefer loading the shared runtime from the registry value `HKLM\Software\BearTLS\DllPath`.
+4. If the registry is missing, try common shared locations such as `\Program Files\BearTLS\wm_https.dll`, `\Storage Card\Program Files\BearTLS\wm_https.dll`, `\CF Card\Program Files\BearTLS\wm_https.dll`, and `\SD Card\Program Files\BearTLS\wm_https.dll`.
+5. Keep an app-local DLL only as a final fallback.
+6. Ensure `ws2.lib` is available in your build (the DLL itself already uses Winsock internally).
 
 ## Runtime smoke test for DLL loading
 
@@ -155,11 +160,44 @@ int main(void)
 }
 ```
 
+## Shared runtime installation
+
+Recommended shared install layout:
+
+```text
+\Program Files\BearTLS\
+  wm_https.dll
+  certs\
+    roots.pem
+```
+
+Storage-card installs are supported as long as the installer records the actual path in the registry:
+
+```text
+HKLM\Software\BearTLS
+  InstallDir = "\Storage Card\Program Files\BearTLS"
+  DllPath    = "\Storage Card\Program Files\BearTLS\wm_https.dll"
+  RootsPath  = "\Storage Card\Program Files\BearTLS\certs\roots.pem"
+  Version    = "1.0.0"
+```
+
+A setup app can load `wm_https.dll` from its final location and call `wm_bear_tls_register_runtime()` to write those keys automatically.
+
+Apps should discover and load BearTLS; BearTLS discovers its own data files.
+
 ## Certificate trust notes
 
-The DLL uses a compiled-in trust-anchor set (`wm_cert_store.c`) and validates TLS chains against those anchors.
+At runtime, `wm_https.dll` first tries to load a PEM root bundle beside itself:
 
-If a target server chain is not rooted in one of those anchors, the handshake fails (`tls_error` set in `wm_https_result`).
+```text
+<directory containing wm_https.dll>\certs\roots.pem
+```
+
+Every `BEGIN CERTIFICATE` block that decodes to a CA certificate is added to the BearSSL trust-anchor set. The compiled-in trust-anchor set (`wm_cert_store.c` plus `wm_extra_roots.inc`) is always appended as a fallback, so HTTPS still works if `roots.pem` is missing or partially invalid.
+
+The source tree includes `BearTLS\certs\roots.pem`, generated from the local Windows trusted root store as an initial deployable bundle. For broader public Web coverage, replace that file with a Mozilla-derived root bundle during packaging.
+
+If a target server chain is not rooted in one of the file-loaded or embedded anchors, the handshake fails (`tls_error` set in `wm_https_result`).
 
 ## Exported symbols
 
@@ -171,8 +209,68 @@ Defined in `BearTLS\wm_https.def`:
 - `wm_tls_write`
 - `wm_tls_read`
 - `wm_tls_close`
+- `wm_bear_tls_register_runtime`
+
+## CAB packaging
+
+`BearTLS_CAB` builds `BearTLSSetup.dll` and then runs CabWiz through `BearTLS_CAB\make_cab.cmd`.
+
+To build all release CABs from a VS2008 command environment, run:
+
+```bat
+BearTLS_CAB\build_release_cabs.cmd
+```
+
+That script builds:
+
+```text
+Pocket PC 2003 (ARMV4)
+Windows Mobile 5.0 Pocket PC SDK (ARMV4I)
+Windows Mobile 6 Professional SDK (ARMV4I)
+```
+
+The generated CAB installs:
+
+```text
+<chosen install directory>\wm_https.dll
+<chosen install directory>\certs\roots.pem
+```
+
+The CAB uses `BearTLSSetup.dll` as `CESetupDLL`. During install it receives the actual `pszInstallDir` selected by the user and writes:
+
+```text
+HKLM\Software\BearTLS\InstallDir
+HKLM\Software\BearTLS\DllPath
+HKLM\Software\BearTLS\RootsPath
+HKLM\Software\BearTLS\Version
+```
+
+This keeps registry paths correct for Device, Storage Card, CF Card, or SD Card installs.
+
+CAB output is written under:
+
+```text
+BearTLS_CAB\cab_output\<platform>\<configuration>\
+```
+
+Current release CAB outputs are:
+
+```text
+BearTLS_CAB\cab_output\Pocket PC 2003 (ARMV4)\Release\BearTLS_CAB.ARMV4.CAB
+BearTLS_CAB\cab_output\Windows Mobile 5.0 Pocket PC SDK (ARMV4I)\Release\BearTLS_CAB.ARMV4I.CAB
+BearTLS_CAB\cab_output\Windows Mobile 6 Professional SDK (ARMV4I)\Release\BearTLS_CAB.ARMV4I.CAB
+```
+
+Validation status:
+
+```text
+WM2003 ARMV4: tested on device, installs and works
+WM5 ARMV4I: built successfully, not yet tested on physical WM5 device
+WM6 ARMV4I: tested on device, installs and works
+```
 
 ## Test app
 
 - `BearTLS\main_example.c`: sample app used by `tls_example`
 - `BearTLS\dll_smoketest_main.c`: dynamic-load smoke test used by `dll_smoketest`
+

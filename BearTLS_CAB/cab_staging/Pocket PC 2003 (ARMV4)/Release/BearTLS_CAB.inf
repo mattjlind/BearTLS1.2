@@ -1,0 +1,36 @@
+[Version]
+Signature="$Windows NT$"
+Provider="BearTLS"
+CESignature="$Windows CE$"
+
+[CEStrings]
+AppName="BearTLS"
+InstallDir="%CE1%\%AppName%"
+
+[CEDevice]
+VersionMin=4.20
+VersionMax=99.99
+
+[DefaultInstall]
+CESetupDLL=BearTLSSetup.dll
+CopyFiles=BearTLS.Files,BearTLS.Certs
+
+[SourceDisksNames]
+1=,"BearTLS Runtime",,"."
+
+[SourceDisksFiles]
+wm_https.dll=1
+roots.pem=1
+BearTLSSetup.dll=1
+
+[DestinationDirs]
+BearTLS.Files=0,"%InstallDir%"
+BearTLS.Certs=0,"%InstallDir%\certs"
+
+[BearTLS.Files]
+wm_https.dll,,,0
+
+[BearTLS.Certs]
+roots.pem,,,0
+
+

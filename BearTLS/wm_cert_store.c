@@ -1,3 +1,4 @@
+#include <windows.h>
 #include <string.h>
 #include "wm_cert_store.h"
 
@@ -6,6 +7,9 @@
 #define WM_MAX_RSA_N_LEN 512
 #define WM_MAX_RSA_E_LEN 8
 #define WM_MAX_EC_Q_LEN 133
+#define WM_MAX_EXTERNAL_ROOT_COUNT 256
+#define WM_CERT_FILE_MAX_BYTES (512 * 1024)
+#define WM_CERT_DER_MAX_BYTES 8192
 
 typedef struct wm_dn_sink {
     unsigned char *buf;
@@ -832,10 +836,131 @@ static const wm_cert_der WM_BUILTIN_ROOT_DERS[WM_BUILTIN_ROOT_COUNT] = {
     { WM_GTS_WE2_INTERMEDIATE_DER, sizeof(WM_GTS_WE2_INTERMEDIATE_DER) }
 };
 
-static br_x509_trust_anchor g_trust_anchors[WM_PUBLIC_ROOT_COUNT];
-static wm_anchor_storage g_anchor_storage[WM_PUBLIC_ROOT_COUNT];
+static br_x509_trust_anchor *g_trust_anchors;
+static wm_anchor_storage *g_anchor_storage;
+static size_t g_trust_anchor_capacity;
 static size_t g_trust_anchor_count;
 static int g_cert_store_initialized;
+static HINSTANCE g_bear_tls_module;
+
+BOOL WINAPI
+DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+{
+    (void)lpvReserved;
+    if (fdwReason == DLL_PROCESS_ATTACH) {
+        g_bear_tls_module = hinstDLL;
+    }
+    return TRUE;
+}
+
+static WCHAR *
+wm_bear_tls_find_last_slash(WCHAR *path)
+{
+    WCHAR *last;
+    WCHAR *p;
+
+    last = 0;
+    for (p = path; *p; ++p) {
+        if (*p == L'\\' || *p == L'/') {
+            last = p;
+        }
+    }
+    return last;
+}
+
+static int
+wm_bear_tls_get_dll_path(WCHAR *out, unsigned int out_count)
+{
+    DWORD n;
+
+    if (out == 0 || out_count == 0) {
+        return 0;
+    }
+    out[0] = 0;
+    n = GetModuleFileName(g_bear_tls_module, out, out_count);
+    if (n == 0 || n >= out_count) {
+        out[0] = 0;
+        return 0;
+    }
+    return 1;
+}
+
+static int
+wm_bear_tls_get_install_dir(WCHAR *out, unsigned int out_count)
+{
+    WCHAR *last;
+
+    if (!wm_bear_tls_get_dll_path(out, out_count)) {
+        return 0;
+    }
+    last = wm_bear_tls_find_last_slash(out);
+    if (last == 0) {
+        return 0;
+    }
+    *last = 0;
+    return 1;
+}
+
+static int
+wm_bear_tls_append_path(WCHAR *path, unsigned int path_count, const WCHAR *suffix)
+{
+    size_t path_len;
+    size_t suffix_len;
+
+    path_len = wcslen(path);
+    suffix_len = wcslen(suffix);
+    if (path_len + suffix_len + 1 > path_count) {
+        return 0;
+    }
+    memcpy(path + path_len, suffix, (suffix_len + 1) * sizeof(WCHAR));
+    return 1;
+}
+
+static int
+wm_bear_tls_get_roots_path(WCHAR *out, unsigned int out_count)
+{
+    if (!wm_bear_tls_get_install_dir(out, out_count)) {
+        return 0;
+    }
+    return wm_bear_tls_append_path(out, out_count, L"\\certs\\roots.pem");
+}
+
+int
+wm_bear_tls_register_runtime(void)
+{
+    HKEY key;
+    WCHAR dll_path[MAX_PATH];
+    WCHAR install_dir[MAX_PATH];
+    WCHAR roots_path[MAX_PATH];
+    const WCHAR *version;
+    DWORD disp;
+    LONG rc;
+
+    if (!wm_bear_tls_get_dll_path(dll_path, MAX_PATH)
+        || !wm_bear_tls_get_install_dir(install_dir, MAX_PATH)
+        || !wm_bear_tls_get_roots_path(roots_path, MAX_PATH))
+    {
+        return 0;
+    }
+
+    rc = RegCreateKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BearTLS", 0, 0,
+        0, 0, 0, &key, &disp);
+    if (rc != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    version = L"1.0.0";
+    RegSetValueEx(key, L"InstallDir", 0, REG_SZ, (const BYTE *)install_dir,
+        (DWORD)((wcslen(install_dir) + 1) * sizeof(WCHAR)));
+    RegSetValueEx(key, L"DllPath", 0, REG_SZ, (const BYTE *)dll_path,
+        (DWORD)((wcslen(dll_path) + 1) * sizeof(WCHAR)));
+    RegSetValueEx(key, L"RootsPath", 0, REG_SZ, (const BYTE *)roots_path,
+        (DWORD)((wcslen(roots_path) + 1) * sizeof(WCHAR)));
+    RegSetValueEx(key, L"Version", 0, REG_SZ, (const BYTE *)version,
+        (DWORD)((wcslen(version) + 1) * sizeof(WCHAR)));
+    RegCloseKey(key);
+    return 1;
+}
 
 static void
 wm_cert_store_append_dn(void *ctx, const void *buf, size_t len)
@@ -920,21 +1045,274 @@ wm_build_anchor_from_der(
     return 0;
 }
 
+static int
+wm_cert_store_alloc(size_t capacity)
+{
+    if (capacity == 0) {
+        return 0;
+    }
+
+    g_trust_anchors = (br_x509_trust_anchor *)HeapAlloc(
+        GetProcessHeap(), HEAP_ZERO_MEMORY,
+        capacity * sizeof(br_x509_trust_anchor));
+    g_anchor_storage = (wm_anchor_storage *)HeapAlloc(
+        GetProcessHeap(), HEAP_ZERO_MEMORY,
+        capacity * sizeof(wm_anchor_storage));
+    if (g_trust_anchors == 0 || g_anchor_storage == 0) {
+        if (g_trust_anchors != 0) {
+            HeapFree(GetProcessHeap(), 0, g_trust_anchors);
+            g_trust_anchors = 0;
+        }
+        if (g_anchor_storage != 0) {
+            HeapFree(GetProcessHeap(), 0, g_anchor_storage);
+            g_anchor_storage = 0;
+        }
+        g_trust_anchor_capacity = 0;
+        return 0;
+    }
+
+    g_trust_anchor_capacity = capacity;
+    return 1;
+}
+
+static const char *
+wm_cert_store_find_text(const char *text, const char *end, const char *needle)
+{
+    size_t needle_len;
+    const char *p;
+
+    needle_len = strlen(needle);
+    if (needle_len == 0) {
+        return text;
+    }
+    for (p = text; p + needle_len <= end; ++p) {
+        if (memcmp(p, needle, needle_len) == 0) {
+            return p;
+        }
+    }
+    return 0;
+}
+
+static int
+wm_cert_store_count_pem_certs(const char *text, size_t len)
+{
+    const char *begin_marker;
+    const char *end;
+    const char *p;
+    int count;
+
+    begin_marker = "-----BEGIN CERTIFICATE-----";
+    end = text + len;
+    p = text;
+    count = 0;
+    while ((p = wm_cert_store_find_text(p, end, begin_marker)) != 0) {
+        count ++;
+        p += strlen(begin_marker);
+        if (count >= WM_MAX_EXTERNAL_ROOT_COUNT) {
+            break;
+        }
+    }
+    return count;
+}
+
+static int
+wm_cert_store_b64_value(char c)
+{
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= '0' && c <= '9') return c - '0' + 52;
+    if (c == '+') return 62;
+    if (c == '/') return 63;
+    return -1;
+}
+
+static size_t
+wm_cert_store_decode_b64(
+    const char *begin,
+    const char *end,
+    unsigned char *out,
+    size_t out_cap
+)
+{
+    unsigned int acc;
+    unsigned int bits;
+    size_t out_len;
+    const char *p;
+
+    acc = 0;
+    bits = 0;
+    out_len = 0;
+    for (p = begin; p < end; ++p) {
+        int v;
+
+        if (*p == '=') {
+            continue;
+        }
+        v = wm_cert_store_b64_value(*p);
+        if (v < 0) {
+            continue;
+        }
+        acc = (acc << 6) | (unsigned int)v;
+        bits += 6;
+        if (bits >= 8) {
+            bits -= 8;
+            if (out_len >= out_cap) {
+                return 0;
+            }
+            out[out_len++] = (unsigned char)((acc >> bits) & 0xFF);
+        }
+    }
+    return out_len;
+}
+
+static char *
+wm_cert_store_read_file(WCHAR *path, size_t *out_len)
+{
+    HANDLE f;
+    DWORD size;
+    DWORD read_total;
+    char *buf;
+
+    if (out_len == 0) {
+        return 0;
+    }
+    *out_len = 0;
+    f = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, 0);
+    if (f == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    size = GetFileSize(f, 0);
+    if (size == 0xFFFFFFFF || size == 0 || size > WM_CERT_FILE_MAX_BYTES) {
+        CloseHandle(f);
+        return 0;
+    }
+
+    buf = (char *)HeapAlloc(GetProcessHeap(), 0, size + 1);
+    if (buf == 0) {
+        CloseHandle(f);
+        return 0;
+    }
+
+    read_total = 0;
+    if (!ReadFile(f, buf, size, &read_total, 0) || read_total != size) {
+        HeapFree(GetProcessHeap(), 0, buf);
+        CloseHandle(f);
+        return 0;
+    }
+    CloseHandle(f);
+    buf[size] = 0;
+    *out_len = size;
+    return buf;
+}
+
+static int
+wm_cert_store_load_pem_roots(WCHAR *path, size_t *next_anchor)
+{
+    static const char begin_marker[] = "-----BEGIN CERTIFICATE-----";
+    static const char end_marker[] = "-----END CERTIFICATE-----";
+    char *pem;
+    size_t pem_len;
+    const char *end;
+    const char *p;
+    unsigned char *der;
+    int loaded;
+
+    if (next_anchor == 0) {
+        return 0;
+    }
+
+    pem = wm_cert_store_read_file(path, &pem_len);
+    if (pem == 0) {
+        return 0;
+    }
+
+    der = (unsigned char *)HeapAlloc(GetProcessHeap(), 0, WM_CERT_DER_MAX_BYTES);
+    if (der == 0) {
+        HeapFree(GetProcessHeap(), 0, pem);
+        return 0;
+    }
+
+    end = pem + pem_len;
+    p = pem;
+    loaded = 0;
+    while (*next_anchor < g_trust_anchor_capacity
+        && (p = wm_cert_store_find_text(p, end, begin_marker)) != 0)
+    {
+        const char *body;
+        const char *footer;
+        size_t der_len;
+
+        body = p + strlen(begin_marker);
+        footer = wm_cert_store_find_text(body, end, end_marker);
+        if (footer == 0) {
+            break;
+        }
+
+        der_len = wm_cert_store_decode_b64(body, footer, der,
+            WM_CERT_DER_MAX_BYTES);
+        if (der_len > 0
+            && wm_build_anchor_from_der(der, der_len,
+                &g_trust_anchors[*next_anchor],
+                &g_anchor_storage[*next_anchor]))
+        {
+            (*next_anchor)++;
+            g_trust_anchor_count++;
+            loaded++;
+        }
+
+        p = footer + strlen(end_marker);
+    }
+
+    HeapFree(GetProcessHeap(), 0, der);
+    HeapFree(GetProcessHeap(), 0, pem);
+    return loaded;
+}
 int
 wm_cert_store_init(void)
 {
     size_t next_anchor;
     size_t i;
+    size_t capacity;
+    int external_count;
+    WCHAR roots_path[MAX_PATH];
 
     if (g_cert_store_initialized) {
         return 1;
     }
 
-    memset(g_trust_anchors, 0, sizeof(g_trust_anchors));
+    external_count = 0;
+    roots_path[0] = 0;
+    if (wm_bear_tls_get_roots_path(roots_path, MAX_PATH)) {
+        size_t pem_len;
+        char *pem;
+
+        pem = wm_cert_store_read_file(roots_path, &pem_len);
+        if (pem != 0) {
+            external_count = wm_cert_store_count_pem_certs(pem, pem_len);
+            HeapFree(GetProcessHeap(), 0, pem);
+        }
+    }
+
+    capacity = WM_PUBLIC_ROOT_COUNT;
+    if (external_count > 0) {
+        capacity += (size_t)external_count;
+    }
+    if (!wm_cert_store_alloc(capacity)) {
+        return 0;
+    }
+
     g_trust_anchor_count = 0;
     next_anchor = 0;
 
-    for (i = 0; i < WM_BUILTIN_ROOT_COUNT; ++i) {
+    if (external_count > 0 && roots_path[0] != 0) {
+        wm_cert_store_load_pem_roots(roots_path, &next_anchor);
+    }
+
+    for (i = 0; i < WM_BUILTIN_ROOT_COUNT
+        && next_anchor < g_trust_anchor_capacity; ++i)
+    {
         if (wm_build_anchor_from_der(
             WM_BUILTIN_ROOT_DERS[i].data,
             WM_BUILTIN_ROOT_DERS[i].len,
@@ -946,7 +1324,9 @@ wm_cert_store_init(void)
         }
     }
 
-    for (i = 0; i < WM_EXTRA_ROOT_COUNT; ++i) {
+    for (i = 0; i < WM_EXTRA_ROOT_COUNT
+        && next_anchor < g_trust_anchor_capacity; ++i)
+    {
         if (wm_build_anchor_from_der(
             WM_EXTRA_ROOT_DERS[i].data,
             WM_EXTRA_ROOT_DERS[i].len,
@@ -979,5 +1359,8 @@ wm_cert_store_anchor_count(void)
     }
     return g_trust_anchor_count;
 }
+
+
+
 
 
