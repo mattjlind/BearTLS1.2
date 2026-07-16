@@ -16,6 +16,8 @@ typedef struct wm_https_result {
 
 typedef struct wm_tls_connection wm_tls_connection;
 
+typedef void (*wm_hashcash_progress_fn)(const char *message, void *user_data);
+
 /* HTTPS GET using a compiled-in BearSSL trust-anchor set.
  * Notes:
  *  - host may be a DNS hostname or a numeric IPv4 string
@@ -85,6 +87,34 @@ int wm_tls_read(
 );
 
 void wm_tls_close(wm_tls_connection *conn);
+
+int wm_hashcash_solve(
+    const char *token,
+    unsigned int easiness,
+    char *prefix_b64,
+    unsigned int prefix_b64_size,
+    wm_hashcash_progress_fn progress,
+    void *progress_user_data
+);
+
+int wm_pbkdf2_sha512_b64salt(
+    const char *password,
+    const char *salt_b64,
+    unsigned int iterations,
+    unsigned char *out,
+    unsigned int out_len,
+    wm_hashcash_progress_fn progress,
+    void *progress_user_data
+);
+
+int wm_mega_rsa_decrypt_session(
+    const unsigned char *mega_privk,
+    unsigned int mega_privk_len,
+    const unsigned char *mega_csid,
+    unsigned int mega_csid_len,
+    unsigned char *sid,
+    unsigned int sid_len
+);
 
 #ifdef __cplusplus
 }

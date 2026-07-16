@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="tls_example"
-	ProjectGUID="{7B16A444-0FF2-4E43-A72B-ADF0A295655E}"
-	RootNamespace="tls_example"
+	Name="tls"
+	ProjectGUID="{7303B8E1-F009-498F-BC6E-5E0DB03E98A7}"
+	RootNamespace="tls"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -14,9 +14,6 @@
 		/>
 		<Platform
 			Name="Pocket PC 2003 (ARMV4)"
-		/>
-		<Platform
-			Name="Pocket PC 2003 (x86)"
 		/>
 		<Platform
 			Name="Windows Mobile 5.0 Pocket PC SDK (ARMV4I)"
@@ -29,7 +26,7 @@
 			Name="Debug|Windows Mobile 6 Professional SDK (ARMV4I)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -51,7 +48,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\inc&quot;"
 				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -74,10 +71,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" "
+				AdditionalOptions="/IGNORE:4253 /IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
+				OutputFile="$(OutDir)/wm_https.dll"
 				LinkIncremental="2"
+				ModuleDefinitionFile=".\wm_https.def"
 				DelayLoadDLLs="$(NOINHERIT)"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
@@ -85,6 +83,7 @@
 				StackCommitSize="4096"
 				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
+				ImportLibrary="$(OutDir)/wm_https.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -117,7 +116,7 @@
 			Name="Debug|Pocket PC 2003 (ARMV4)"
 			OutputDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -139,101 +138,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
-				AdditionalOptions="/GS- /QRarch4"
-				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
-				MinimalRebuild="true"
-				RuntimeLibrary="1"
-				BufferSecurityCheck="false"
-				UsePrecompiledHeader="0"
-				WarningLevel="3"
-				DebugInformationFormat="3"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES)"
-				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /MACHINE:ARM"
-				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
-				LinkIncremental="2"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
-				SubSystem="8"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				ResourceOnlyDLL="false"
-				RandomizedBaseAddress="0"
-				DataExecutionPrevention="0"
-				TargetMachine="3"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCCodeSignTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-			<DeploymentTool
-				ForceDirty="-1"
-				RemoteDirectory=""
-				RegisterOutput="0"
-				AdditionalFiles=""
-			/>
-			<DebuggerTool
-			/>
-		</Configuration>
-		<Configuration
-			Name="Debug|Pocket PC 2003 (x86)"
-			OutputDirectory="Pocket PC 2003 (x86)\$(ConfigurationName)"
-			IntermediateDirectory="Pocket PC 2003 (x86)\$(ConfigurationName)"
-			ConfigurationType="1"
-			CharacterSet="1"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				ExecutionBucket="7"
 				AdditionalOptions="/GS-"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\inc&quot;"
 				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -258,8 +165,9 @@
 				Name="VCLinkerTool"
 				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /MACHINE:ARM"
 				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
+				OutputFile="$(OutDir)/wm_https.dll"
 				LinkIncremental="2"
+				ModuleDefinitionFile=".\wm_https.def"
 				DelayLoadDLLs="$(NOINHERIT)"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
@@ -268,6 +176,8 @@
 				StackCommitSize="4096"
 				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
+				ImportLibrary="$(OutDir)/wm_https.lib"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -300,7 +210,7 @@
 			Name="Debug|Windows Mobile 5.0 Pocket PC SDK (ARMV4I)"
 			OutputDirectory="Windows Mobile 5.0 Pocket PC SDK (ARMV4I)\$(ConfigurationName)"
 			IntermediateDirectory="Windows Mobile 5.0 Pocket PC SDK (ARMV4I)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -323,7 +233,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\inc&quot;"
 				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -346,10 +256,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" "
+				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20"
 				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
+				OutputFile="$(OutDir)/wm_https.dll"
 				LinkIncremental="2"
+				ModuleDefinitionFile=".\wm_https.def"
 				DelayLoadDLLs="$(NOINHERIT)"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
@@ -357,6 +268,7 @@
 				StackCommitSize="4096"
 				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
+				ImportLibrary="$(OutDir)/wm_https.lib"
 				TargetMachine="0"
 			/>
 			<Tool
@@ -390,7 +302,7 @@
 			Name="Release|Windows Mobile 6 Professional SDK (ARMV4I)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -413,7 +325,7 @@
 				ExecutionBucket="7"
 				Optimization="2"
 				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\inc&quot;"
 				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="true"
@@ -435,10 +347,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" "
+				AdditionalOptions="/IGNORE:4253 /IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
+				OutputFile="$(OutDir)/wm_https.dll"
 				LinkIncremental="1"
+				ModuleDefinitionFile=".\wm_https.def"
 				DelayLoadDLLs="$(NOINHERIT)"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
@@ -448,6 +361,7 @@
 				EnableCOMDATFolding="2"
 				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
+				ImportLibrary="$(OutDir)/wm_https.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -480,7 +394,7 @@
 			Name="Release|Pocket PC 2003 (ARMV4)"
 			OutputDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -502,102 +416,10 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
-				AdditionalOptions="/GS- /QRarch4"
-				Optimization="2"
-				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
-				RuntimeLibrary="0"
-				BufferSecurityCheck="false"
-				UsePrecompiledHeader="0"
-				WarningLevel="3"
-				DebugInformationFormat="3"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES)"
-				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20"
-				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
-				LinkIncremental="1"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				RandomizedBaseAddress="0"
-				DataExecutionPrevention="0"
-				TargetMachine="0"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCCodeSignTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-			<DeploymentTool
-				ForceDirty="-1"
-				RemoteDirectory=""
-				RegisterOutput="0"
-				AdditionalFiles=""
-			/>
-			<DebuggerTool
-			/>
-		</Configuration>
-		<Configuration
-			Name="Release|Pocket PC 2003 (x86)"
-			OutputDirectory="Pocket PC 2003 (x86)\$(ConfigurationName)"
-			IntermediateDirectory="Pocket PC 2003 (x86)\$(ConfigurationName)"
-			ConfigurationType="1"
-			CharacterSet="1"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				ExecutionBucket="7"
 				AdditionalOptions="/GS-"
 				Optimization="2"
 				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\inc&quot;"
 				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -619,10 +441,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20"
+				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /MACHINE:ARM"
 				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
+				OutputFile="$(OutDir)/wm_https.dll"
 				LinkIncremental="1"
+				ModuleDefinitionFile=".\wm_https.def"
 				DelayLoadDLLs="$(NOINHERIT)"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
@@ -632,6 +455,8 @@
 				EnableCOMDATFolding="2"
 				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
+				ImportLibrary="$(OutDir)/wm_https.lib"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -664,7 +489,7 @@
 			Name="Release|Windows Mobile 5.0 Pocket PC SDK (ARMV4I)"
 			OutputDirectory="Windows Mobile 5.0 Pocket PC SDK (ARMV4I)\$(ConfigurationName)"
 			IntermediateDirectory="Windows Mobile 5.0 Pocket PC SDK (ARMV4I)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -688,7 +513,7 @@
 				ExecutionBucket="7"
 				Optimization="2"
 				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\tls\tls\bearssl\inc&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\src&quot;;&quot;C:\Users\Matthew\Documents\Visual Studio 2008\Projects\BearTLS\BearTLS\bearssl\inc&quot;"
 				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="true"
@@ -712,8 +537,9 @@
 				Name="VCLinkerTool"
 				AdditionalOptions=" "
 				AdditionalDependencies="ws2.lib"
-				OutputFile="$(OutDir)/tls_example.exe"
+				OutputFile="$(OutDir)/wm_https.dll"
 				LinkIncremental="1"
+				ModuleDefinitionFile=".\wm_https.def"
 				DelayLoadDLLs="$(NOINHERIT)"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/wm_https.pdb"
@@ -723,6 +549,7 @@
 				EnableCOMDATFolding="2"
 				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
+				ImportLibrary="$(OutDir)/wm_https.lib"
 				TargetMachine="0"
 			/>
 			<Tool
@@ -770,6 +597,7 @@
 				>
 				<FileConfiguration
 					Name="Debug|Windows Mobile 6 Professional SDK (ARMV4I)"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -777,6 +605,7 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Pocket PC 2003 (ARMV4)"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -784,6 +613,7 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Windows Mobile 5.0 Pocket PC SDK (ARMV4I)"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -791,6 +621,7 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Windows Mobile 6 Professional SDK (ARMV4I)"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -798,6 +629,7 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Pocket PC 2003 (ARMV4)"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -805,6 +637,7 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Windows Mobile 5.0 Pocket PC SDK (ARMV4I)"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2027,14 +1860,6 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Pocket PC 2003 (x86)"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
 					Name="Debug|Windows Mobile 5.0 Pocket PC SDK (ARMV4I)"
 					ExcludedFromBuild="true"
 					>
@@ -2052,14 +1877,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Pocket PC 2003 (ARMV4)"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Pocket PC 2003 (x86)"
 					ExcludedFromBuild="true"
 					>
 					<Tool

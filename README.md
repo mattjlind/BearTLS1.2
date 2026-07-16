@@ -1,4 +1,4 @@
-# tls
+# BearTLS
 
 Windows Mobile / WinCE TLS helper DLL built on BearSSL.
 
@@ -10,8 +10,8 @@ This project builds `wm_https.dll`, which exposes a small C API for:
 
 ## Projects in Solution
 
-- `tls` (DLL): builds `wm_https.dll` + `wm_https.lib`
-- `tls_example` (EXE): direct HTTPS sample client using the static API
+- `BearTLS` (DLL): builds `wm_https.dll` + `wm_https.lib`
+- `BearTLS_example` (EXE): direct HTTPS sample client using the static API
 - `dll_smoketest` (EXE): `LoadLibrary`/`GetProcAddress` smoke test for `wm_https.dll`
 
 ## Platform/Config Notes
@@ -33,14 +33,14 @@ WM5/WM6 configs keep `/GS` enabled.
 
 ## Build
 
-1. Open `tls.sln` in Visual Studio 2008.
+1. Open `BearTLS.sln` in Visual Studio 2008.
 2. Select your target configuration/platform.
 3. For WM2003 device/emulator (ARM): use `Pocket PC 2003 (ARMV4)`.
-4. Build the `tls` project.
+4. Build the `BearTLS` project.
 
 ## Public API
 
-Declared in `tls\wm_https.h`:
+Declared in `BearTLS\wm_https.h`:
 
 ```c
 typedef struct wm_https_result {
@@ -112,7 +112,7 @@ void wm_tls_close(wm_tls_connection *conn);
 
 ## Linking in another project
 
-1. Add `tls\wm_https.h` to your include path.
+1. Add `BearTLS\wm_https.h` to your include path.
 2. Link against `wm_https.lib`.
 3. Deploy `wm_https.dll` with your executable on device/emulator.
 4. Ensure `ws2.lib` is available in your build (the DLL itself already uses Winsock internally).
@@ -163,7 +163,7 @@ If a target server chain is not rooted in one of those anchors, the handshake fa
 
 ## Exported symbols
 
-Defined in `tls\wm_https.def`:
+Defined in `BearTLS\wm_https.def`:
 - `wm_https_get`
 - `wm_https_request`
 - `wm_tls_exchange`
@@ -174,5 +174,5 @@ Defined in `tls\wm_https.def`:
 
 ## Test app
 
-- `tls\main_example.c`: sample app used by `tls_example`
-- `tls\dll_smoketest_main.c`: dynamic-load smoke test used by `dll_smoketest`
+- `BearTLS\main_example.c`: sample app used by `tls_example`
+- `BearTLS\dll_smoketest_main.c`: dynamic-load smoke test used by `dll_smoketest`

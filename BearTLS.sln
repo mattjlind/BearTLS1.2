@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tls", "tls\tls.vcproj", "{7303B8E1-F009-498F-BC6E-5E0DB03E98A7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BearTLS", "BearTLS\BearTLS.vcproj", "{7303B8E1-F009-498F-BC6E-5E0DB03E98A7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tls_example", "tls\tls_example.vcproj", "{7B16A444-0FF2-4E43-A72B-ADF0A295655E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BearTLS_example", "BearTLS\BearTLS_example.vcproj", "{7B16A444-0FF2-4E43-A72B-ADF0A295655E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dll_smoketest", "tls\dll_smoketest.vcproj", "{91CC4C8E-E134-4701-B97B-2C75849F6D60}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dll_smoketest", "BearTLS\dll_smoketest.vcproj", "{91CC4C8E-E134-4701-B97B-2C75849F6D60}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
