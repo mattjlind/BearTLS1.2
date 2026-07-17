@@ -2,6 +2,7 @@
 *.ncb
 *.suo
 *.user
+*.sln.cache
 
 # VS C++/linker intermediates and outputs
 *.obj

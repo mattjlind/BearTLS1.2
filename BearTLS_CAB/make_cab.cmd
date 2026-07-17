@@ -8,10 +8,21 @@ set PROJDIR=%~dp0
 set ROOTDIR=%PROJDIR%..\
 set STAGE=%PROJDIR%cab_staging\%PLATFORM%\%CONFIG%
 set CABOUT=%PROJDIR%cab_output\%PLATFORM%\%CONFIG%
-set CABWIZ=C:\Program Files (x86)\Windows Mobile 6 SDK\Tools\CabWiz\cabwiz.exe
-if not exist "%CABWIZ%" set CABWIZ=C:\Program Files (x86)\Microsoft Visual Studio 9.0\SmartDevices\SDK\SDKTools\cabwiz.exe
-if not exist "%CABWIZ%" set CABWIZ=C:\Program Files\Windows Mobile 6 SDK\Tools\CabWiz\cabwiz.exe
-if not exist "%CABWIZ%" goto no_cabwiz
+set CABWIZ=
+set WM_SDK_ROOT=
+
+rem Prefer the registered Windows Mobile 6 SDK location, including 32-bit
+rem registrations queried from a 64-bit command prompt.
+for /f "tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows CE Tools\SDKs\Windows Mobile 6 Professional SDK" /v SDKRootDir 2^>nul ^| find /i "SDKRootDir"') do set "WM_SDK_ROOT=%%B"
+if not defined WM_SDK_ROOT for /f "tokens=2,*" %%A in ('reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows CE Tools\SDKs\Windows Mobile 6 Professional SDK" /v SDKRootDir 2^>nul ^| find /i "SDKRootDir"') do set "WM_SDK_ROOT=%%B"
+if defined WM_SDK_ROOT if exist "%WM_SDK_ROOT%Tools\CabWiz\cabwiz.exe" set "CABWIZ=%WM_SDK_ROOT%Tools\CabWiz\cabwiz.exe"
+
+rem Fall back to locations derived from the machine's environment. These also
+rem cover VS2008 and SDK installations on drives other than C:.
+if not defined CABWIZ if defined VS90COMNTOOLS if exist "%VS90COMNTOOLS%..\..\SmartDevices\SDK\SDKTools\cabwiz.exe" set "CABWIZ=%VS90COMNTOOLS%..\..\SmartDevices\SDK\SDKTools\cabwiz.exe"
+if not defined CABWIZ if defined ProgramFiles(x86) if exist "%ProgramFiles(x86)%\Windows Mobile 6 SDK\Tools\CabWiz\cabwiz.exe" set "CABWIZ=%ProgramFiles(x86)%\Windows Mobile 6 SDK\Tools\CabWiz\cabwiz.exe"
+if not defined CABWIZ if defined ProgramFiles if exist "%ProgramFiles%\Windows Mobile 6 SDK\Tools\CabWiz\cabwiz.exe" set "CABWIZ=%ProgramFiles%\Windows Mobile 6 SDK\Tools\CabWiz\cabwiz.exe"
+if not defined CABWIZ goto no_cabwiz
 
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
 mkdir "%STAGE%" || exit /b 1

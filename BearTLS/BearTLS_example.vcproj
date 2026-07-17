@@ -51,7 +51,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -74,7 +74,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" "
+				AdditionalOptions="/IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="2"
@@ -141,7 +141,7 @@
 				ExecutionBucket="7"
 				AdditionalOptions="/GS- /QRarch4"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -164,7 +164,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /MACHINE:ARM"
+				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /MACHINE:ARM /IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="2"
@@ -233,7 +233,7 @@
 				ExecutionBucket="7"
 				AdditionalOptions="/GS-"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -256,7 +256,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /MACHINE:ARM"
+				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /MACHINE:ARM /IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="2"
@@ -323,7 +323,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;DEBUG;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -346,7 +346,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" "
+				AdditionalOptions="/IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="2"
@@ -413,7 +413,7 @@
 				ExecutionBucket="7"
 				Optimization="2"
 				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="true"
@@ -435,7 +435,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" "
+				AdditionalOptions="/IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="1"
@@ -505,7 +505,7 @@
 				AdditionalOptions="/GS- /QRarch4"
 				Optimization="2"
 				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -527,7 +527,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20"
+				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="1"
@@ -597,7 +597,7 @@
 				AdditionalOptions="/GS-"
 				Optimization="2"
 				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -619,7 +619,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20"
+				AdditionalOptions="/SUBSYSTEM:WINDOWSCE,4.20 /IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="1"
@@ -688,7 +688,7 @@
 				ExecutionBucket="7"
 				Optimization="2"
 				FavorSizeOrSpeed="2"
-				AdditionalIncludeDirectories=".\bearssl\src;.\bearssl\inc"
+				AdditionalIncludeDirectories=".;.\bearssl\src;.\bearssl\inc"
 				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=420;WINVER=0x0420;UNDER_CE;$(PLATFORMDEFINES);WINCE;_WINDOWS;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="true"
@@ -710,7 +710,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" "
+				AdditionalOptions="/IGNORE:4254"
 				AdditionalDependencies="ws2.lib"
 				OutputFile="$(OutDir)/tls_example.exe"
 				LinkIncremental="1"
