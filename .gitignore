@@ -11,9 +11,17 @@
 *.lib
 *.dll
 *.exe
+*.pch
+*.cab
 
 # Build logs
 **/BuildLog.htm
+
+# BearTLS CAB packaging outputs (keep project sources and scripts tracked)
+/BearTLS_CAB/cab_output/
+/BearTLS_CAB/cab_staging/
+/BearTLS_CAB/*/Debug/
+/BearTLS_CAB/*/Release/
 
 # Smart Device output folders
 /tls/Windows Mobile 6 Professional SDK (ARMV4I)/
